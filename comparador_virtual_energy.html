@@ -215,6 +215,26 @@ table.ct tfoot td:nth-child(-n+3){text-align:left}
     </div>
   </div>
   <div class="dash-tip">💡 <span id="dash-tip-txt">Carga el Excel de tarifas para empezar.</span></div>
+
+  <div style="margin-top:1.2rem;background:var(--sf);border:1px solid var(--bo);border-radius:12px;padding:1rem 1.2rem">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:.8rem">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--pr)"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.906c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.14c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.081.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.448-1.632z"/></svg>
+      <span style="font-size:13px;font-weight:700;color:var(--pr)">Configuración Notion</span>
+      <span id="notion-cfg-status" style="font-size:11px;margin-left:auto"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;display:block;margin-bottom:3px">Token de integración</label>
+        <input type="password" id="cfg-token" placeholder="ntn_..." style="width:100%;padding:7px 10px;border:1px solid var(--bo);border-radius:6px;font:13px var(--fn)">
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;display:block;margin-bottom:3px">ID página Clientes</label>
+        <input type="text" id="cfg-pageid" placeholder="37c92ab1..." style="width:100%;padding:7px 10px;border:1px solid var(--bo);border-radius:6px;font:13px var(--fn)">
+      </div>
+    </div>
+    <button class="btn bp bsm" onclick="guardarCfgNotion()">Guardar configuración</button>
+    <span style="font-size:11px;color:var(--mu);margin-left:10px">Se guarda en este navegador. No se incluye en el código.</span>
+  </div>
 </div>
 
 <!-- TARIFAS -->
@@ -319,8 +339,13 @@ table.ct tfoot td:nth-child(-n+3){text-align:left}
     <button class="btn bp" onclick="saveCliente()">💾 Guardar cliente</button>
     <button class="btn bo2" onclick="clearForm()">🗑 Limpiar</button>
     <button class="btn ba" onclick="goCompare()">📊 Ver comparativa →</button>
+    <button class="btn" style="background:#000;color:#fff;padding:8px 16px;border-radius:7px;border:none;font:600 13px var(--fn);cursor:pointer;display:inline-flex;align-items:center;gap:6px" onclick="guardarClienteEnNotion()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.906c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.14c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.081.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.448-1.632z"/></svg>
+      Guardar ficha en Notion
+    </button>
   </div>
   <div id="smsg" style="margin-top:10px;display:none"></div>
+  <div id="notion-cliente-status" style="margin-top:8px;display:none;padding:8px 12px;border-radius:6px;font-size:12px"></div>
 </div>
 
 <!-- COMPARAR -->
@@ -1453,6 +1478,7 @@ function genOfertaPDF(){
 
 // DASHBOARD
 function initDashboard(){
+  initNotionCfg();
   const logo=document.getElementById('dash-logo');
   if(logo) logo.src=LOGO_B64;
   const d=new Date();
@@ -1493,8 +1519,17 @@ function registrarDesdeOferta(){
 }
 
 // ─── NOTION INTEGRATION ───────────────────────────────────────────────────────
-const NOTION_TOKEN='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';
-const NOTION_CLIENTES_PAGE='37c92ab1205d80fb9305e27e434f307b';
+// ─── CONFIGURACIÓN NOTION (guardada en localStorage) ────────────────────────
+function getNotionCfg(){
+  return{
+    token: localStorage.getItem('notion_token')||'',
+    pageId: localStorage.getItem('notion_page_id')||''
+  };
+}
+function setNotionCfg(token,pageId){
+  localStorage.setItem('notion_token',token);
+  localStorage.setItem('notion_page_id',pageId);
+}
 
 async function notionFetch(endpoint,options={}){
   // Proxy CORS para llamadas desde archivo local
@@ -1505,8 +1540,10 @@ async function notionFetch(endpoint,options={}){
     u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     u=>`https://cors-anywhere.herokuapp.com/${u}`,
   ];
+  const cfg=getNotionCfg();
+  if(!cfg.token) throw new Error('Token de Notion no configurado. Ve a Ajustes de Notion.');
   const headers={
-    'Authorization':'Bearer '+NOTION_TOKEN,
+    'Authorization':'Bearer '+cfg.token,
     'Content-Type':'application/json',
     'Notion-Version':'2022-06-28'
   };
@@ -1525,7 +1562,8 @@ async function notionFetch(endpoint,options={}){
 // Busca si ya existe una página hijo con ese nombre de cliente
 async function buscarPaginaCliente(nombre){
   try{
-    const d=await notionFetch('/blocks/'+NOTION_CLIENTES_PAGE+'/children?page_size=100');
+    const cfg=getNotionCfg();
+    const d=await notionFetch('/blocks/'+cfg.pageId+'/children?page_size=100');
     if(!d.results) return null;
     for(const b of d.results){
       if(b.type==='child_page'&&b.child_page?.title?.toLowerCase()===nombre.toLowerCase()) return b.id;
@@ -1536,9 +1574,14 @@ async function buscarPaginaCliente(nombre){
 
 // Crea una página de cliente dentro de Clientes
 async function crearPaginaCliente(c){
-  const potStr=c.pot.filter(v=>v>0).map((v,i)=>`P${i+1}: ${v} kW`).join(' · ');
+  const cfg=getNotionCfg();
+  const np=c.tipo==='2.0TD'?2:6;
+  const ne=c.tipo==='2.0TD'?3:6;
+  const potStr=c.pot.slice(0,np).filter(v=>v>0).map((v,i)=>`P${i+1}: ${v} kW`).join(' · ')||'—';
+  const conStr=c.con.slice(0,ne).map((v,i)=>`P${i+1}: ${(v||0).toLocaleString('es-ES')} kWh`).join(' · ')||'—';
+  const totalCon=c.con.slice(0,ne).reduce((a,b)=>a+b,0);
   const body={
-    parent:{page_id:NOTION_CLIENTES_PAGE},
+    parent:{page_id:cfg.pageId},
     properties:{title:{title:[{text:{content:c.nombre||'Cliente'}}]}},
     children:[
       {object:'block',type:'heading_2',heading_2:{rich_text:[{text:{content:'📋 Datos del suministro'}}]}},
@@ -1546,13 +1589,34 @@ async function crearPaginaCliente(c){
       {object:'block',type:'paragraph',paragraph:{rich_text:[{text:{content:`Dirección: ${c.dir||'—'}`}}]}},
       {object:'block',type:'paragraph',paragraph:{rich_text:[{text:{content:`Tipo de acceso: ${c.tipo||'—'}`}}]}},
       {object:'block',type:'paragraph',paragraph:{rich_text:[{text:{content:`Compañía actual: ${c.cia||'—'}${c.tar?' — '+c.tar:''}`}}]}},
-      {object:'block',type:'paragraph',paragraph:{rich_text:[{text:{content:`Potencia contratada: ${potStr||'—'}`}}]}},
+      {object:'block',type:'paragraph',paragraph:{rich_text:[{text:{content:`Potencia contratada: ${potStr}`}}]}},
+      {object:'block',type:'heading_2',heading_2:{rich_text:[{text:{content:'⚡ Consumo anual (kWh/año)'}}]}},
+      {object:'block',type:'paragraph',paragraph:{rich_text:[{text:{content:`Por periodos: ${conStr}`}}]}},
+      {object:'block',type:'paragraph',paragraph:{rich_text:[{text:{content:`Total anual: ${totalCon.toLocaleString('es-ES')} kWh`}}]}},
       {object:'block',type:'divider',divider:{}},
       {object:'block',type:'heading_2',heading_2:{rich_text:[{text:{content:'📊 Propuestas enviadas'}}]}}
     ]
   };
+  if(c.notas){
+    body.children.splice(9,0,{object:'block',type:'callout',callout:{rich_text:[{text:{content:c.notas}}],icon:{emoji:'📝'}}});
+  }
   const d=await notionFetch('/pages',{method:'POST',body:JSON.stringify(body)});
   return d.id||null;
+}
+
+// Actualizar página existente con nuevos datos de consumo
+async function actualizarDatosCliente(pageId,c){
+  const np=c.tipo==='2.0TD'?2:6;
+  const ne=c.tipo==='2.0TD'?3:6;
+  const conStr=c.con.slice(0,ne).map((v,i)=>`P${i+1}: ${(v||0).toLocaleString('es-ES')} kWh`).join(' · ')||'—';
+  const totalCon=c.con.slice(0,ne).reduce((a,b)=>a+b,0);
+  const body={children:[
+    {object:'block',type:'heading_3',heading_3:{rich_text:[{text:{content:'🔄 Datos actualizados — '+new Date().toLocaleDateString('es-ES')}}]}},
+    {object:'block',type:'paragraph',paragraph:{rich_text:[{text:{content:`Consumo por periodos: ${conStr}`}}]}},
+    {object:'block',type:'paragraph',paragraph:{rich_text:[{text:{content:`Total anual: ${totalCon.toLocaleString('es-ES')} kWh`}}]}},
+    {object:'block',type:'divider',divider:{}}
+  ]};
+  await notionFetch('/blocks/'+pageId+'/children',{method:'PATCH',body:JSON.stringify(body)});
 }
 
 // Añade bloque de propuesta a la página del cliente
@@ -1582,7 +1646,10 @@ async function añadirPropuestaANotion(pageId,prop,c){
 async function guardarYEnviarNotion(){
   const c=getForm();
   if(!c.nombre){alert('El cliente no tiene nombre. Guarda sus datos primero.');return;}
-
+  const cfg=getNotionCfg();
+  if(!cfg.token||!cfg.pageId){
+    alert('Configura el token y el ID de página de Notion en la pestaña Inicio.');return;
+  }
   const statusEl=document.getElementById('notion-status');
   statusEl.style.display='block';
   statusEl.style.background='#e8f0f8';
@@ -1621,6 +1688,65 @@ async function guardarYEnviarNotion(){
     statusEl.style.color='#842029';
     statusEl.textContent='❌ Error: '+e.message;
   }
+}
+
+async function guardarClienteEnNotion(){
+  const c=getForm();
+  if(!c.nombre){alert('Introduce al menos el nombre del cliente.');return;}
+  saveCliente();
+  const cfg=getNotionCfg();
+  if(!cfg.token||!cfg.pageId){
+    alert('Configura el token y el ID de página de Notion en la pestaña Inicio.');return;
+  }
+  const statusEl=document.getElementById('notion-cliente-status');
+  statusEl.style.display='block';
+  statusEl.style.background='#e8f0f8';
+  statusEl.style.color='#1a3a5c';
+  statusEl.textContent='🔄 Conectando con Notion...';
+  try{
+    let pageId=await buscarPaginaCliente(c.nombre);
+    if(!pageId){
+      statusEl.textContent='📄 Creando ficha de '+c.nombre+'...';
+      pageId=await crearPaginaCliente(c);
+      if(!pageId) throw new Error('No se pudo crear la página.');
+      const idx=CLT.findIndex(x=>x.id===c.id);
+      if(idx>=0){CLT[idx].notionPageId=pageId;localStorage.setItem('cel_clientes',JSON.stringify(CLT));}
+      statusEl.style.background='#d1e7dd';
+      statusEl.style.color='#0a5f38';
+      statusEl.textContent='✅ Ficha creada en Notion: '+c.nombre;
+    } else {
+      statusEl.textContent='🔄 Actualizando datos de consumo...';
+      await actualizarDatosCliente(pageId,c);
+      statusEl.style.background='#d1e7dd';
+      statusEl.style.color='#0a5f38';
+      statusEl.textContent='✅ Datos actualizados en Notion para: '+c.nombre;
+    }
+    setTimeout(()=>{statusEl.style.display='none';},4000);
+  }catch(e){
+    statusEl.style.background='#f8d7da';
+    statusEl.style.color='#842029';
+    statusEl.textContent='❌ Error: '+e.message;
+  }
+}
+
+function guardarCfgNotion(){
+  const token=document.getElementById('cfg-token').value.trim();
+  const pageId=document.getElementById('cfg-pageid').value.trim().replace(/-/g,'');
+  if(!token||!pageId){alert('Rellena los dos campos.');return;}
+  setNotionCfg(token,pageId);
+  const st=document.getElementById('notion-cfg-status');
+  st.textContent='✅ Configuración guardada';
+  st.style.color='var(--ok)';
+  setTimeout(()=>{st.textContent='';},3000);
+}
+
+function initNotionCfg(){
+  const cfg=getNotionCfg();
+  if(cfg.token) document.getElementById('cfg-token').value=cfg.token;
+  if(cfg.pageId) document.getElementById('cfg-pageid').value=cfg.pageId;
+  const st=document.getElementById('notion-cfg-status');
+  if(cfg.token&&cfg.pageId){st.textContent='✅ Conectado';st.style.color='var(--ok)';}
+  else{st.textContent='⚠️ Sin configurar';st.style.color='var(--ac)';}
 }
 
 // TOGGLE COLUMNS
