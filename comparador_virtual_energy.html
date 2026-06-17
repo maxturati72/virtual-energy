@@ -1560,13 +1560,39 @@ async function notionFetch(endpoint,options={}){
 }
 
 // Busca si ya existe una página hijo con ese nombre de cliente
-async function buscarPaginaCliente(nombre){
+async function buscarPaginaCliente(nombre, cups, clienteLocal=null){
   try{
+    // 1. Si el cliente local ya tiene notionPageId guardado, verificar que coincide el CUPS
+    if(clienteLocal?.notionPageId){
+      try{
+        const check=await notionFetch('/pages/'+clienteLocal.notionPageId);
+        if(check&&!check.archived){
+          // Verificar que la página corresponde al mismo CUPS leyendo su contenido
+          const blocks=await notionFetch('/blocks/'+clienteLocal.notionPageId+'/children?page_size=20');
+          const cupsMatch=blocks?.results?.some(b=>
+            b.type==='paragraph'&&b.paragraph?.rich_text?.some(t=>t.text?.content?.includes(cups))
+          );
+          if(cupsMatch||!cups) return clienteLocal.notionPageId;
+        }
+      }catch(e){}
+    }
+    // 2. Buscar entre todos los hijos por nombre Y CUPS
     const cfg=getNotionCfg();
     const d=await notionFetch('/blocks/'+cfg.pageId+'/children?page_size=100');
     if(!d.results) return null;
     for(const b of d.results){
-      if(b.type==='child_page'&&b.child_page?.title?.toLowerCase()===nombre.toLowerCase()) return b.id;
+      if(b.type!=='child_page') continue;
+      const titleMatch=b.child_page?.title?.toLowerCase()===nombre.toLowerCase();
+      if(!titleMatch) continue;
+      if(!cups) return b.id; // sin CUPS, coincidencia por nombre
+      // Verificar CUPS dentro de la página
+      try{
+        const blocks=await notionFetch('/blocks/'+b.id+'/children?page_size=20');
+        const cupsMatch=blocks?.results?.some(bl=>
+          bl.type==='paragraph'&&bl.paragraph?.rich_text?.some(t=>t.text?.content?.includes(cups))
+        );
+        if(cupsMatch) return b.id;
+      }catch(e){ continue; }
     }
     return null;
   }catch(e){return null;}
@@ -1664,16 +1690,17 @@ async function guardarYEnviarNotion(){
 
   try{
     statusEl.textContent='🔍 Buscando página del cliente en Notion...';
-    let pageId=await buscarPaginaCliente(c.nombre);
+    const cLocal=CLT.find(x=>x.id===c.id);
+    let pageId=await buscarPaginaCliente(c.nombre, c.cups, cLocal);
 
     if(!pageId){
-      statusEl.textContent='📄 Creando página para '+c.nombre+'...';
+      statusEl.textContent='📄 Creando ficha para '+c.nombre+'...';
       pageId=await crearPaginaCliente(c);
       if(!pageId) throw new Error('No se pudo crear la página del cliente.');
-      // Guardar el ID de Notion en el cliente local
-      const idx=CLT.findIndex(x=>x.id===c.id);
-      if(idx>=0){CLT[idx].notionPageId=pageId;localStorage.setItem('cel_clientes',JSON.stringify(CLT));}
     }
+    // Guardar siempre el ID encontrado o creado
+    const idx=CLT.findIndex(x=>x.id===c.id);
+    if(idx>=0){CLT[idx].notionPageId=pageId;localStorage.setItem('cel_clientes',JSON.stringify(CLT));}
 
     statusEl.textContent='📋 Añadiendo propuesta...';
     await añadirPropuestaANotion(pageId,prop,c);
@@ -1704,17 +1731,19 @@ async function guardarClienteEnNotion(){
   statusEl.style.color='#1a3a5c';
   statusEl.textContent='🔄 Conectando con Notion...';
   try{
-    let pageId=await buscarPaginaCliente(c.nombre);
+    const cLocal2=CLT.find(x=>x.id===c.id);
+    let pageId=await buscarPaginaCliente(c.nombre, c.cups, cLocal2);
+    const idx2=CLT.findIndex(x=>x.id===c.id);
     if(!pageId){
       statusEl.textContent='📄 Creando ficha de '+c.nombre+'...';
       pageId=await crearPaginaCliente(c);
       if(!pageId) throw new Error('No se pudo crear la página.');
-      const idx=CLT.findIndex(x=>x.id===c.id);
-      if(idx>=0){CLT[idx].notionPageId=pageId;localStorage.setItem('cel_clientes',JSON.stringify(CLT));}
+      if(idx2>=0){CLT[idx2].notionPageId=pageId;localStorage.setItem('cel_clientes',JSON.stringify(CLT));}
       statusEl.style.background='#d1e7dd';
       statusEl.style.color='#0a5f38';
       statusEl.textContent='✅ Ficha creada en Notion: '+c.nombre;
     } else {
+      if(idx2>=0){CLT[idx2].notionPageId=pageId;localStorage.setItem('cel_clientes',JSON.stringify(CLT));}
       statusEl.textContent='🔄 Actualizando datos de consumo...';
       await actualizarDatosCliente(pageId,c);
       statusEl.style.background='#d1e7dd';
@@ -1805,4 +1834,3 @@ initDashboard();
     if(cfg.type==='fee_ep_diff') return(totalCon*feeEn*cfg.pctE)+(totalPot*fpa*365*cfg.pctP);
     return null;
   }
-
