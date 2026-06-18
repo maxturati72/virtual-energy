@@ -1560,42 +1560,62 @@ async function notionFetch(endpoint,options={}){
 }
 
 // Busca si ya existe una página hijo con ese nombre de cliente
+// Obtiene TODOS los hijos de una página, paginando si hace falta
+async function getAllChildren(blockId){
+  let results=[];
+  let cursor=undefined;
+  let guard=0;
+  do{
+    const qs='?page_size=100'+(cursor?'&start_cursor='+cursor:'');
+    const d=await notionFetch('/blocks/'+blockId+'/children'+qs);
+    if(d?.results) results=results.concat(d.results);
+    cursor=d?.has_more?d.next_cursor:undefined;
+    guard++;
+  }while(cursor&&guard<20);
+  return results;
+}
+
+function bloqueContieneTexto(block,texto){
+  if(!texto) return false;
+  const t=texto.toLowerCase();
+  const types=['paragraph','heading_1','heading_2','heading_3','callout','bulleted_list_item'];
+  for(const ty of types){
+    const rt=block[ty]?.rich_text;
+    if(rt&&rt.some(x=>(x.text?.content||x.plain_text||'').toLowerCase().includes(t))) return true;
+  }
+  return false;
+}
+
 async function buscarPaginaCliente(nombre, cups, clienteLocal=null){
-  try{
-    // 1. Si el cliente local ya tiene notionPageId guardado, verificar que coincide el CUPS
-    if(clienteLocal?.notionPageId){
-      try{
-        const check=await notionFetch('/pages/'+clienteLocal.notionPageId);
-        if(check&&!check.archived){
-          // Verificar que la página corresponde al mismo CUPS leyendo su contenido
-          const blocks=await notionFetch('/blocks/'+clienteLocal.notionPageId+'/children?page_size=20');
-          const cupsMatch=blocks?.results?.some(b=>
-            b.type==='paragraph'&&b.paragraph?.rich_text?.some(t=>t.text?.content?.includes(cups))
-          );
-          if(cupsMatch||!cups) return clienteLocal.notionPageId;
-        }
-      }catch(e){}
-    }
-    // 2. Buscar entre todos los hijos por nombre Y CUPS
-    const cfg=getNotionCfg();
-    const d=await notionFetch('/blocks/'+cfg.pageId+'/children?page_size=100');
-    if(!d.results) return null;
-    for(const b of d.results){
-      if(b.type!=='child_page') continue;
-      const titleMatch=b.child_page?.title?.toLowerCase()===nombre.toLowerCase();
-      if(!titleMatch) continue;
-      if(!cups) return b.id; // sin CUPS, coincidencia por nombre
-      // Verificar CUPS dentro de la página
-      try{
-        const blocks=await notionFetch('/blocks/'+b.id+'/children?page_size=20');
-        const cupsMatch=blocks?.results?.some(bl=>
-          bl.type==='paragraph'&&bl.paragraph?.rich_text?.some(t=>t.text?.content?.includes(cups))
-        );
-        if(cupsMatch) return b.id;
-      }catch(e){ continue; }
-    }
-    return null;
-  }catch(e){return null;}
+  // 1. Si el cliente local ya tiene notionPageId guardado, verificar que sigue existiendo y coincide el CUPS
+  if(clienteLocal?.notionPageId){
+    try{
+      const check=await notionFetch('/pages/'+clienteLocal.notionPageId);
+      if(check&&!check.archived){
+        if(!cups) return clienteLocal.notionPageId;
+        const blocks=await getAllChildren(clienteLocal.notionPageId);
+        const cupsMatch=blocks.some(b=>bloqueContieneTexto(b,cups));
+        if(cupsMatch) return clienteLocal.notionPageId;
+        // El ID guardado no corresponde a este CUPS: seguimos buscando por si acaso, no lo descartamos como error
+      }
+    }catch(e){ /* la página pudo borrarse o cambiar; seguimos buscando */ }
+  }
+  // 2. Buscar entre TODOS los hijos de la página Clientes (con paginación)
+  const cfg=getNotionCfg();
+  const hijos=await getAllChildren(cfg.pageId);
+  const candidatos=hijos.filter(b=>
+    b.type==='child_page'&&b.child_page?.title?.trim().toLowerCase()===nombre.trim().toLowerCase()
+  );
+  if(!candidatos.length) return null;
+  if(!cups){
+    // Sin CUPS para comparar: devolvemos el primero (mejor que duplicar)
+    return candidatos[0].id;
+  }
+  for(const cand of candidatos){
+    const blocks=await getAllChildren(cand.id);
+    if(blocks.some(b=>bloqueContieneTexto(b,cups))) return cand.id;
+  }
+  return null;
 }
 
 // Crea una página de cliente dentro de Clientes
@@ -1689,25 +1709,29 @@ async function guardarYEnviarNotion(){
   if(!prop){statusEl.textContent='❌ Error al guardar la propuesta local.';return;}
 
   try{
-    statusEl.textContent='🔍 Buscando página del cliente en Notion...';
+    statusEl.textContent='🔍 Buscando ficha existente de '+c.nombre+'...';
     const cLocal=CLT.find(x=>x.id===c.id);
     let pageId=await buscarPaginaCliente(c.nombre, c.cups, cLocal);
+    let creada=false;
 
     if(!pageId){
-      statusEl.textContent='📄 Creando ficha para '+c.nombre+'...';
+      statusEl.textContent='📄 No existe ficha previa. Creando nueva para '+c.nombre+'...';
       pageId=await crearPaginaCliente(c);
       if(!pageId) throw new Error('No se pudo crear la página del cliente.');
+      creada=true;
     }
     // Guardar siempre el ID encontrado o creado
     const idx=CLT.findIndex(x=>x.id===c.id);
     if(idx>=0){CLT[idx].notionPageId=pageId;localStorage.setItem('cel_clientes',JSON.stringify(CLT));}
 
-    statusEl.textContent='📋 Añadiendo propuesta...';
+    statusEl.textContent='📋 Añadiendo propuesta a la ficha...';
     await añadirPropuestaANotion(pageId,prop,c);
 
     statusEl.style.background='#d1e7dd';
     statusEl.style.color='#0a5f38';
-    statusEl.textContent='✅ Propuesta enviada a Notion correctamente.';
+    statusEl.textContent=creada
+      ? '✅ Ficha nueva creada y propuesta registrada.'
+      : '✅ Propuesta añadida a la ficha existente (sin duplicar).';
     setTimeout(()=>{cerrarModal();if(document.getElementById('panel-historial').classList.contains('on'))renderHist();},1800);
 
   }catch(e){
@@ -1834,3 +1858,5 @@ initDashboard();
     if(cfg.type==='fee_ep_diff') return(totalCon*feeEn*cfg.pctE)+(totalPot*fpa*365*cfg.pctP);
     return null;
   }
+
+
