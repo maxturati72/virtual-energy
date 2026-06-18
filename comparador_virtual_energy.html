@@ -1586,32 +1586,43 @@ function bloqueContieneTexto(block,texto){
   return false;
 }
 
+// Comprueba si el título de una página de Notion corresponde a este cliente.
+// Usa coincidencia por CUPS si está disponible en el propio título (más fiable),
+// y si no, compara el nombre permitiendo que el título tenga texto extra (ej. "Nombre — CUPS").
+function tituloCoincide(tituloNotion, nombre, cups){
+  if(!tituloNotion) return false;
+  const t=tituloNotion.trim().toLowerCase();
+  if(cups && t.includes(cups.trim().toLowerCase())) return true;
+  const n=(nombre||'').trim().toLowerCase();
+  if(!n) return false;
+  return t===n || t.startsWith(n+' ') || t.startsWith(n+'—') || t.startsWith(n+'-') || t.includes(n);
+}
+
 async function buscarPaginaCliente(nombre, cups, clienteLocal=null){
-  // 1. Si el cliente local ya tiene notionPageId guardado, verificar que sigue existiendo y coincide el CUPS
+  // 1. Si el cliente local ya tiene notionPageId guardado, verificar que sigue existiendo en Notion
   if(clienteLocal?.notionPageId){
     try{
       const check=await notionFetch('/pages/'+clienteLocal.notionPageId);
-      if(check&&!check.archived){
-        if(!cups) return clienteLocal.notionPageId;
-        const blocks=await getAllChildren(clienteLocal.notionPageId);
-        const cupsMatch=blocks.some(b=>bloqueContieneTexto(b,cups));
-        if(cupsMatch) return clienteLocal.notionPageId;
-        // El ID guardado no corresponde a este CUPS: seguimos buscando por si acaso, no lo descartamos como error
-      }
-    }catch(e){ /* la página pudo borrarse o cambiar; seguimos buscando */ }
+      if(check&&!check.archived) return clienteLocal.notionPageId;
+    }catch(e){ /* la página pudo borrarse; seguimos buscando por si acaso */ }
   }
-  // 2. Buscar entre TODOS los hijos de la página Clientes (con paginación)
+  // 2. Buscar entre TODOS los hijos de la página Clientes (con paginación), por título o por CUPS dentro del contenido
   const cfg=getNotionCfg();
   const hijos=await getAllChildren(cfg.pageId);
-  const candidatos=hijos.filter(b=>
-    b.type==='child_page'&&b.child_page?.title?.trim().toLowerCase()===nombre.trim().toLowerCase()
+  const paginas=hijos.filter(b=>b.type==='child_page');
+
+  // 2a. Coincidencia directa por título (incluye casos "Nombre — CUPS")
+  const porTitulo=paginas.filter(b=>tituloCoincide(b.child_page?.title,nombre,cups));
+  if(porTitulo.length===1) return porTitulo[0].id;
+
+  // 2b. Si hay varias candidatas por título (mismo nombre, distinto suministro) o ninguna,
+  // verificamos el CUPS dentro del contenido de cada página candidata por nombre
+  const candidatasPorNombre=porTitulo.length?porTitulo:paginas.filter(b=>
+    (b.child_page?.title||'').trim().toLowerCase().includes((nombre||'').trim().toLowerCase())
   );
-  if(!candidatos.length) return null;
-  if(!cups){
-    // Sin CUPS para comparar: devolvemos el primero (mejor que duplicar)
-    return candidatos[0].id;
-  }
-  for(const cand of candidatos){
+  if(!cups) return candidatasPorNombre[0]?.id||null;
+
+  for(const cand of candidatasPorNombre){
     const blocks=await getAllChildren(cand.id);
     if(blocks.some(b=>bloqueContieneTexto(b,cups))) return cand.id;
   }
@@ -1628,7 +1639,7 @@ async function crearPaginaCliente(c){
   const totalCon=c.con.slice(0,ne).reduce((a,b)=>a+b,0);
   const body={
     parent:{page_id:cfg.pageId},
-    properties:{title:{title:[{text:{content:c.nombre||'Cliente'}}]}},
+    properties:{title:{title:[{text:{content:(c.nombre||'Cliente')+(c.cups?' — '+c.cups:'')}}]}},
     children:[
       {object:'block',type:'heading_2',heading_2:{rich_text:[{text:{content:'📋 Datos del suministro'}}]}},
       {object:'block',type:'paragraph',paragraph:{rich_text:[{text:{content:`CUPS: ${c.cups||'—'}`}}]}},
@@ -1858,5 +1869,4 @@ initDashboard();
     if(cfg.type==='fee_ep_diff') return(totalCon*feeEn*cfg.pctE)+(totalPot*fpa*365*cfg.pctP);
     return null;
   }
-
 
