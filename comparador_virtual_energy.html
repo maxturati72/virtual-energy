@@ -1598,10 +1598,15 @@ function bloqueContieneTexto(block,texto){
 // Comprueba si el título de una página de Notion corresponde a este cliente.
 // Usa coincidencia por CUPS si está disponible en el propio título (más fiable),
 // y si no, compara el nombre permitiendo que el título tenga texto extra (ej. "Nombre — CUPS").
-function tituloCoincide(tituloNotion, nombre, cups){
+// Comprueba si el CUPS aparece literalmente en el título de la página (caso más fiable: "Nombre — CUPS")
+function tituloTieneCups(tituloNotion, cups){
+  if(!tituloNotion||!cups) return false;
+  return tituloNotion.trim().toLowerCase().includes(cups.trim().toLowerCase());
+}
+// Comprueba si el título corresponde al nombre del cliente (sin mirar el CUPS)
+function tituloTieneNombre(tituloNotion, nombre){
   if(!tituloNotion) return false;
   const t=tituloNotion.trim().toLowerCase();
-  if(cups && t.includes(cups.trim().toLowerCase())) return true;
   const n=(nombre||'').trim().toLowerCase();
   if(!n) return false;
   return t===n || t.startsWith(n+' ') || t.startsWith(n+'—') || t.startsWith(n+'-') || t.includes(n);
@@ -1609,33 +1614,43 @@ function tituloCoincide(tituloNotion, nombre, cups){
 
 async function buscarPaginaCliente(nombre, cups, clienteLocal=null){
   // 1. Si el cliente local ya tiene notionPageId guardado, verificar que sigue existiendo en Notion
+  //    Y que además corresponde al mismo CUPS (si lo tenemos), para no reutilizar la ficha de otro suministro.
   if(clienteLocal?.notionPageId){
     try{
       const check=await notionFetch('/pages/'+clienteLocal.notionPageId);
-      if(check&&!check.archived) return clienteLocal.notionPageId;
+      if(check&&!check.archived){
+        if(!cups) return clienteLocal.notionPageId;
+        const titulo=check.properties?.title?.title?.[0]?.plain_text||'';
+        if(tituloTieneCups(titulo,cups)) return clienteLocal.notionPageId;
+        const blocks=await getAllChildren(clienteLocal.notionPageId);
+        if(blocks.some(b=>bloqueContieneTexto(b,cups))) return clienteLocal.notionPageId;
+        // El ID guardado no corresponde a este CUPS: NO lo usamos, seguimos buscando/creando otro.
+      }
     }catch(e){ /* la página pudo borrarse; seguimos buscando por si acaso */ }
   }
-  // 2. Buscar entre TODOS los hijos de la página Clientes (con paginación), por título o por CUPS dentro del contenido
+
   const cfg=getNotionCfg();
   const hijos=await getAllChildren(cfg.pageId);
   const paginas=hijos.filter(b=>b.type==='child_page');
 
-  // 2a. Coincidencia directa por título (incluye casos "Nombre — CUPS")
-  const porTitulo=paginas.filter(b=>tituloCoincide(b.child_page?.title,nombre,cups));
-  if(porTitulo.length===1) return porTitulo[0].id;
+  if(cups){
+    // 2a. CON CUPS: solo aceptamos coincidencia exacta de CUPS, ya sea en el título o en el contenido.
+    //     Nunca devolvemos una página solo porque el nombre coincide: eso es lo que causaba duplicados
+    //     mal resueltos cuando un mismo cliente tiene varios suministros.
+    const porTituloConCups=paginas.filter(b=>tituloTieneCups(b.child_page?.title,cups));
+    if(porTituloConCups.length) return porTituloConCups[0].id;
 
-  // 2b. Si hay varias candidatas por título (mismo nombre, distinto suministro) o ninguna,
-  // verificamos el CUPS dentro del contenido de cada página candidata por nombre
-  const candidatasPorNombre=porTitulo.length?porTitulo:paginas.filter(b=>
-    (b.child_page?.title||'').trim().toLowerCase().includes((nombre||'').trim().toLowerCase())
-  );
-  if(!cups) return candidatasPorNombre[0]?.id||null;
-
-  for(const cand of candidatasPorNombre){
-    const blocks=await getAllChildren(cand.id);
-    if(blocks.some(b=>bloqueContieneTexto(b,cups))) return cand.id;
+    const candidatasPorNombre=paginas.filter(b=>tituloTieneNombre(b.child_page?.title,nombre));
+    for(const cand of candidatasPorNombre){
+      const blocks=await getAllChildren(cand.id);
+      if(blocks.some(b=>bloqueContieneTexto(b,cups))) return cand.id;
+    }
+    return null; // ningún suministro coincide → se creará una ficha nueva para este CUPS
   }
-  return null;
+
+  // 2b. SIN CUPS disponible: coincidencia solo por nombre (mejor que duplicar, peor que verificar)
+  const porNombre=paginas.filter(b=>tituloTieneNombre(b.child_page?.title,nombre));
+  return porNombre[0]?.id||null;
 }
 
 // Crea una página de cliente dentro de Clientes
@@ -1878,4 +1893,3 @@ initDashboard();
     if(cfg.type==='fee_ep_diff') return(totalCon*feeEn*cfg.pctE)+(totalPot*fpa*365*cfg.pctP);
     return null;
   }
-
