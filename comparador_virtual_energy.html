@@ -204,7 +204,7 @@ table.ct tfoot td:nth-child(-n+3){text-align:left}
   <div style="font-size:13px;font-weight:700;color:var(--pr);margin-bottom:.8rem;text-transform:uppercase;letter-spacing:.5px">Accesos rápidos</div>
   <div class="dash-grid">
     <div class="dash-card" style="--card-color:#e8a020" onclick="showTab('tarifas')"><div class="dash-icon">⚡</div><h3>Base de Tarifas</h3><p>Carga o actualiza el Excel semanal de tarifas</p><div class="dash-arrow">→</div></div>
-    <div class="dash-card" style="--card-color:#1a6b3c" onclick="showTab('cliente')"><div class="dash-icon">👤</div><h3>Nuevo Cliente</h3><p>Introduce datos de suministro, potencias y consumos</p><div class="dash-arrow">→</div></div>
+    <div class="dash-card" style="--card-color:#1a6b3c" onclick="nuevoCliente()"><div class="dash-icon">👤</div><h3>Nuevo Cliente</h3><p>Introduce datos de suministro, potencias y consumos</p><div class="dash-arrow">→</div></div>
     <div class="dash-card" style="--card-color:#1a3a5c" onclick="showTab('comparar')"><div class="dash-icon">📊</div><h3>Comparativa</h3><p>Tabla completa y ranking score ahorro/comisión</p><div class="dash-arrow">→</div></div>
     <div class="dash-card" style="--card-color:#6a3a8c" onclick="showTab('historial')"><div class="dash-icon">👥</div><h3>CRM Clientes</h3><p>Fichas completas, historial de propuestas y documentos</p><div class="dash-arrow">→</div></div>
   </div>
@@ -764,11 +764,18 @@ function saveCliente(){
 }
 function clearForm(){
   if(!confirm('¿Limpiar el formulario?')) return;
+  resetForm();
+}
+function resetForm(){
   editId=null;
   ['cn','cdir','ccups','ccia','ctar','cnot'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('ctipo').value='';
   for(let i=1;i<=6;i++) ['pp','apop','aenp','conp'].forEach(p=>{const el=document.getElementById(p+i);if(el){el.value='';el.disabled=false;}});
   document.getElementById('bper').textContent='';
+}
+function nuevoCliente(){
+  resetForm();
+  showTab('cliente');
 }
 function goCompare(){
   const c=getForm();
