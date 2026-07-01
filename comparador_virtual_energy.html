@@ -978,16 +978,26 @@ function onFeeChange(){
 }
 function isPrecioBase(t){return t.tpr.toLowerCase().includes('base')||t.tpr.toLowerCase().includes('boe')}
 
+// Precios de acceso a red (peajes regulados CNMC) usados cuando la comercializadora
+// aplica PVP de potencia (pp=null). Actualizar si cambian los peajes regulados.
+const PEAJE_POT_PVP = {
+  '2.0TD': [0.082, 0.082, 0, 0, 0, 0],      // P1 y P2 en €/kW/día
+  '3.0TD': [0.058, 0.039, 0.010, 0, 0, 0],   // P1-P3 aproximados 3.0TD
+};
+
 function calcTarifa(tar,c){
   const np=potPeriods(c.tipo),ne=periods(c.tipo);
   const fee=getFees();
   const isBase=isPrecioBase(tar);
   const applyFeeEn=isBase;
   const applyFeePot=isBase&&tar.feePot;
+  const peajePot=PEAJE_POT_PVP[c.tipo]||PEAJE_POT_PVP['2.0TD'];
   let pot=0,en=0;
   for(let i=0;i<ne;i++){
-    if(i<np&&tar.pp[i]!==null&&c.pot[i]>0){
-      pot+=(tar.pp[i]+(applyFeePot?fee.pot:0))*c.pot[i]*365;
+    if(i<np&&c.pot[i]>0){
+      // Si la tarifa no tiene precio de potencia propio (null), usa el peaje de acceso a red
+      const ppBase=tar.pp[i]!==null?tar.pp[i]:peajePot[i]||0;
+      pot+=(ppBase+(applyFeePot?fee.pot:0))*c.pot[i]*365;
     }
     if(tar.ep[i]!==null&&c.con[i]>0){
       en+=(tar.ep[i]+(applyFeeEn?fee.en:0))*c.con[i];
@@ -1372,7 +1382,8 @@ function openOferta(tarRow){
   for(let i=0;i<pp;i++){
     const pA=c.apop[i]||0,kW=c.pot[i]||0;
     // Price shown to client = base price + fee (if applicable)
-    const pNbase=tarRow.pp[i]||0;
+    const peajePotOferta=PEAJE_POT_PVP[c.tipo]||PEAJE_POT_PVP['2.0TD'];
+    const pNbase=tarRow.pp[i]!==null?tarRow.pp[i]:peajePotOferta[i]||0;
     const pN=pNbase+(applyFeePotOferta?feePotOferta:0);
     const cA=pA>0&&kW>0?pA*kW*365:null,cN=pN>0&&kW>0?pN*kW*365:null;
     const diff=cA!==null&&cN!==null?cA-cN:null;
@@ -1959,3 +1970,4 @@ initDashboard();
     if(cfg.type==='fee_ep_diff') return(totalCon*feeEn*cfg.pctE)+(totalPot*fpa*365*cfg.pctP);
     return null;
   }
+
