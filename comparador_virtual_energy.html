@@ -204,7 +204,7 @@ table.ct tfoot td:nth-child(-n+3){text-align:left}
   <div style="font-size:13px;font-weight:700;color:var(--pr);margin-bottom:.8rem;text-transform:uppercase;letter-spacing:.5px">Accesos rápidos</div>
   <div class="dash-grid">
     <div class="dash-card" style="--card-color:#e8a020" onclick="showTab('tarifas')"><div class="dash-icon">⚡</div><h3>Base de Tarifas</h3><p>Carga o actualiza el Excel semanal de tarifas</p><div class="dash-arrow">→</div></div>
-    <div class="dash-card" style="--card-color:#1a6b3c" onclick="nuevoCliente()"><div class="dash-icon">👤</div><h3>Nuevo Cliente</h3><p>Introduce datos de suministro, potencias y consumos</p><div class="dash-arrow">→</div></div>
+    <div class="dash-card" style="--card-color:#1a6b3c" onclick="showTab('cliente')"><div class="dash-icon">👤</div><h3>Nuevo Cliente</h3><p>Introduce datos de suministro, potencias y consumos</p><div class="dash-arrow">→</div></div>
     <div class="dash-card" style="--card-color:#1a3a5c" onclick="showTab('comparar')"><div class="dash-icon">📊</div><h3>Comparativa</h3><p>Tabla completa y ranking score ahorro/comisión</p><div class="dash-arrow">→</div></div>
     <div class="dash-card" style="--card-color:#6a3a8c" onclick="showTab('historial')"><div class="dash-icon">👥</div><h3>CRM Clientes</h3><p>Fichas completas, historial de propuestas y documentos</p><div class="dash-arrow">→</div></div>
   </div>
@@ -434,7 +434,6 @@ table.ct tfoot td:nth-child(-n+3){text-align:left}
       <button class="btn ba" onclick="registrarDesdeOferta()">📋 Registrar en CRM</button>
     </div>
   </div>
-  <div id="of-notion-status" style="margin-bottom:12px;display:none;padding:8px 12px;border-radius:6px;font-size:12px"></div>
   <div class="card" style="border-left:4px solid var(--ac)">
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;flex-wrap:wrap">
       <div>
@@ -765,18 +764,11 @@ function saveCliente(){
 }
 function clearForm(){
   if(!confirm('¿Limpiar el formulario?')) return;
-  resetForm();
-}
-function resetForm(){
   editId=null;
   ['cn','cdir','ccups','ccia','ctar','cnot'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('ctipo').value='';
   for(let i=1;i<=6;i++) ['pp','apop','aenp','conp'].forEach(p=>{const el=document.getElementById(p+i);if(el){el.value='';el.disabled=false;}});
   document.getElementById('bper').textContent='';
-}
-function nuevoCliente(){
-  resetForm();
-  showTab('cliente');
 }
 function goCompare(){
   const c=getForm();
@@ -1107,6 +1099,61 @@ function matchPlenitudeTramo(tar,tipo){
   return group[col];
 }
 
+// NEXUS (TULUZ) — comisiones por tramo de consumo (hoja "NEXUS LUZ").
+// E1-E5 = PRO/MAX/ULTRA/A TU MANERA/EASY | EP1-EP3 = PRO+/MAX+/ULTRA+
+// (Estable1-4 sin comisión definida)
+const NEXUS_COM={
+  "2.0TD":{
+    e1:[{d:0,h:990,c:1.44},{d:1000,h:1990,c:5.84},{d:2000,h:4990,c:12},{d:5000,h:9990,c:28},{d:10000,h:19990,c:56},{d:20000,h:29990,c:100},{d:30000,h:39990,c:140},{d:40000,h:49990,c:180},{d:50000,h:69990,c:232},{d:70000,h:100000,c:332}],
+    e2:[{d:0,h:990,c:2.8},{d:1000,h:1990,c:11.6},{d:2000,h:4990,c:24},{d:5000,h:9990,c:56},{d:10000,h:19990,c:112},{d:20000,h:29990,c:196},{d:30000,h:39990,c:280},{d:40000,h:49990,c:356},{d:50000,h:69990,c:464},{d:70000,h:100000,c:660}],
+    e3:[{d:0,h:990,c:4.32},{d:1000,h:1990,c:17.6},{d:2000,h:4990,c:36},{d:5000,h:9990,c:84},{d:10000,h:19990,c:168},{d:20000,h:29990,c:296},{d:30000,h:39990,c:416},{d:40000,h:49990,c:536},{d:50000,h:69990,c:692},{d:70000,h:100000,c:988}],
+    e4:[{d:0,h:990,c:5.6},{d:1000,h:1990,c:23.2},{d:2000,h:4990,c:48.8},{d:5000,h:9990,c:112},{d:10000,h:19990,c:224},{d:20000,h:29990,c:392},{d:30000,h:39990,c:556},{d:40000,h:49990,c:712},{d:50000,h:69990,c:924},{d:70000,h:100000,c:1320}],
+    e5:[{d:0,h:990,c:7.04},{d:1000,h:1990,c:29.6},{d:2000,h:4990,c:60.8},{d:5000,h:9990,c:140},{d:10000,h:19990,c:280},{d:20000,h:29990,c:492},{d:30000,h:39990,c:696},{d:40000,h:49990,c:892},{d:50000,h:69990,c:1156},{d:70000,h:100000,c:1648}],
+    ep1:[{d:0,h:990,c:6.8},{d:1000,h:1990,c:12.8},{d:2000,h:4990,c:20.4},{d:5000,h:9990,c:40},{d:10000,h:19990,c:72},{d:20000,h:29990,c:116},{d:30000,h:39990,c:160},{d:40000,h:49990,c:200},{d:50000,h:69990,c:252},{d:70000,h:100000,c:348}],
+    ep2:[{d:0,h:990,c:13.6},{d:1000,h:1990,c:26.4},{d:2000,h:4990,c:40.8},{d:5000,h:9990,c:80},{d:10000,h:19990,c:144},{d:20000,h:29990,c:228},{d:30000,h:39990,c:316},{d:40000,h:49990,c:396},{d:50000,h:69990,c:500},{d:70000,h:100000,c:696}],
+    ep3:[{d:0,h:990,c:20},{d:1000,h:1990,c:39.2},{d:2000,h:4990,c:60.8},{d:5000,h:9990,c:120},{d:10000,h:19990,c:216},{d:20000,h:29990,c:344},{d:30000,h:39990,c:472},{d:40000,h:49990,c:592},{d:50000,h:69990,c:748},{d:70000,h:100000,c:1044}],
+    estable1:[{d:0,h:990,c:12},{d:1000,h:1990,c:16},{d:2000,h:4990,c:24},{d:5000,h:9990,c:32},{d:10000,h:19990,c:40},{d:20000,h:29990,c:44},{d:30000,h:39990,c:48},{d:40000,h:49990,c:53.6},{d:50000,h:69990,c:80},{d:70000,h:100000,c:120}],
+    estable2:[{d:0,h:990,c:26.4},{d:1000,h:1990,c:34.4},{d:2000,h:4990,c:37.6},{d:5000,h:9990,c:49.6},{d:10000,h:19990,c:55.2},{d:20000,h:29990,c:64},{d:30000,h:39990,c:68},{d:40000,h:49990,c:72},{d:50000,h:69990,c:112},{d:70000,h:100000,c:164}],
+    estable3:[{d:0,h:990,c:40},{d:1000,h:1990,c:48},{d:2000,h:4990,c:56},{d:5000,h:9990,c:64},{d:10000,h:19990,c:76},{d:20000,h:29990,c:88},{d:30000,h:39990,c:116},{d:40000,h:49990,c:128},{d:50000,h:69990,c:152},{d:70000,h:100000,c:200}],
+    estable4:[{d:0,h:990,c:52.8},{d:1000,h:1990,c:69.6},{d:2000,h:4990,c:76.8},{d:5000,h:9990,c:108},{d:10000,h:19990,c:132},{d:20000,h:29990,c:144},{d:30000,h:39990,c:152},{d:40000,h:49990,c:160},{d:50000,h:69990,c:212},{d:70000,h:100000,c:252}]
+  },
+  "3.0TD":{
+    e1:[{d:0,h:990,c:1.12},{d:1000,h:1990,c:6},{d:2000,h:4990,c:13.6},{d:5000,h:9990,c:30.4},{d:10000,h:19990,c:60},{d:20000,h:29990,c:100},{d:30000,h:39990,c:140},{d:40000,h:49990,c:180},{d:50000,h:69990,c:240},{d:70000,h:99990,c:336},{d:100000,h:149990,c:496},{d:150000,h:199990,c:696},{d:200000,h:299990,c:968},{d:300000,h:399990,c:1368},{d:400000,h:499990,c:1768},{d:500000,h:599990,c:2160},{d:600000,h:699990,c:2576},{d:700000,h:799990,c:2920},{d:800000,h:899990,c:3376},{d:900000,h:1000000,c:3928}],
+    e2:[{d:0,h:990,c:2.24},{d:1000,h:1990,c:12},{d:2000,h:4990,c:27.2},{d:5000,h:9990,c:60.8},{d:10000,h:19990,c:120},{d:20000,h:29990,c:200},{d:30000,h:39990,c:280},{d:40000,h:49990,c:360},{d:50000,h:69990,c:476},{d:70000,h:99990,c:672},{d:100000,h:149990,c:984},{d:150000,h:199990,c:1384},{d:200000,h:299990,c:1928},{d:300000,h:399990,c:2728},{d:400000,h:499990,c:3528},{d:500000,h:599990,c:4312},{d:600000,h:699990,c:5144},{d:700000,h:799990,c:5832},{d:800000,h:899990,c:6744},{d:900000,h:1000000,c:7856}],
+    e3:[{d:0,h:990,c:3.36},{d:1000,h:1990,c:18},{d:2000,h:4990,c:40.8},{d:5000,h:9990,c:91.2},{d:10000,h:19990,c:180.8},{d:20000,h:29990,c:300},{d:30000,h:39990,c:420},{d:40000,h:49990,c:540},{d:50000,h:69990,c:712},{d:70000,h:99990,c:1008},{d:100000,h:149990,c:1472},{d:150000,h:199990,c:2072},{d:200000,h:299990,c:2888},{d:300000,h:399990,c:4088},{d:400000,h:499990,c:5296},{d:500000,h:599990,c:6472},{d:600000,h:699990,c:7712},{d:700000,h:799990,c:8744},{d:800000,h:899990,c:10112},{d:900000,h:1000000,c:11784}],
+    e4:[{d:0,h:990,c:4.4},{d:1000,h:1990,c:24},{d:2000,h:4990,c:54.4},{d:5000,h:9990,c:122.4},{d:10000,h:19990,c:240.8},{d:20000,h:29990,c:400},{d:30000,h:39990,c:560},{d:40000,h:49990,c:720},{d:50000,h:69990,c:952},{d:70000,h:99990,c:1344},{d:100000,h:149990,c:1960},{d:150000,h:199990,c:2760},{d:200000,h:299990,c:3848},{d:300000,h:399990,c:5456},{d:400000,h:499990,c:7056},{d:500000,h:599990,c:8624},{d:600000,h:699990,c:10280},{d:700000,h:799990,c:11664},{d:800000,h:899990,c:13480},{d:900000,h:1000000,c:15712}],
+    e5:[{d:0,h:990,c:5.6},{d:1000,h:1990,c:29.6},{d:2000,h:4990,c:68.8},{d:5000,h:9990,c:152.8},{d:10000,h:19990,c:301.6},{d:20000,h:29990,c:496},{d:30000,h:39990,c:696},{d:40000,h:49990,c:900},{d:50000,h:69990,c:1188},{d:70000,h:99990,c:1676},{d:100000,h:149990,c:2448},{d:150000,h:199990,c:3448},{d:200000,h:299990,c:4808},{d:300000,h:399990,c:6816},{d:400000,h:499990,c:8824},{d:500000,h:599990,c:10776},{d:600000,h:699990,c:12848},{d:700000,h:799990,c:14576},{d:800000,h:899990,c:16856},{d:900000,h:1000000,c:19640}],
+    ep1:[{d:0,h:990,c:32},{d:1000,h:1990,c:56.8},{d:2000,h:4990,c:72},{d:5000,h:9990,c:95.2},{d:10000,h:19990,c:132},{d:20000,h:29990,c:192},{d:30000,h:39990,c:236},{d:40000,h:49990,c:284},{d:50000,h:69990,c:356},{d:70000,h:99990,c:548},{d:100000,h:149990,c:688},{d:150000,h:199990,c:944},{d:200000,h:299990,c:1280},{d:300000,h:399990,c:1768},{d:400000,h:499990,c:2248},{d:500000,h:599990,c:2792},{d:600000,h:699990,c:3416},{d:700000,h:799990,c:3752},{d:800000,h:899990,c:3992},{d:900000,h:1000000,c:4560}],
+    ep2:[{d:0,h:990,c:72},{d:1000,h:1990,c:112.8},{d:2000,h:4990,c:144},{d:5000,h:9990,c:189.6},{d:10000,h:19990,c:264},{d:20000,h:29990,c:380},{d:30000,h:39990,c:468},{d:40000,h:49990,c:568},{d:50000,h:69990,c:712},{d:70000,h:99990,c:1096},{d:100000,h:149990,c:1368},{d:150000,h:199990,c:1888},{d:200000,h:299990,c:2560},{d:300000,h:399990,c:3528},{d:400000,h:499990,c:4488},{d:500000,h:599990,c:5584},{d:600000,h:699990,c:6832},{d:700000,h:799990,c:7504},{d:800000,h:899990,c:7984},{d:900000,h:1000000,c:9112}],
+    ep3:[{d:0,h:990,c:104},{d:1000,h:1990,c:169.6},{d:2000,h:4990,c:216},{d:5000,h:9990,c:284},{d:10000,h:19990,c:396},{d:20000,h:29990,c:568},{d:30000,h:39990,c:700},{d:40000,h:49990,c:852},{d:50000,h:69990,c:1068},{d:70000,h:99990,c:1640},{d:100000,h:149990,c:2048},{d:150000,h:199990,c:2832},{d:200000,h:299990,c:3840},{d:300000,h:399990,c:5288},{d:400000,h:499990,c:6728},{d:500000,h:599990,c:8376},{d:600000,h:699990,c:10248},{d:700000,h:799990,c:11248},{d:800000,h:899990,c:11968},{d:900000,h:1000000,c:13664}],
+    estable1:[{d:0,h:990,c:104},{d:1000,h:1990,c:120},{d:2000,h:4990,c:136},{d:5000,h:9990,c:152},{d:10000,h:19990,c:168},{d:20000,h:29990,c:200},{d:30000,h:39990,c:256},{d:40000,h:49990,c:320},{d:50000,h:69990,c:392},{d:70000,h:99990,c:552},{d:100000,h:149990,c:720},{d:150000,h:199990,c:920},{d:200000,h:299990,c:1200},{d:300000,h:399990,c:1600},{d:400000,h:499990,c:2000},{d:500000,h:599990,c:2400},{d:600000,h:699990,c:2880},{d:700000,h:799990,c:3360},{d:800000,h:899990,c:3840},{d:900000,h:1000000,c:4400}],
+    estable2:[{d:0,h:990,c:196.8},{d:1000,h:1990,c:216},{d:2000,h:4990,c:253.6},{d:5000,h:9990,c:285.6},{d:10000,h:19990,c:328},{d:20000,h:29990,c:432},{d:30000,h:39990,c:476},{d:40000,h:49990,c:548},{d:50000,h:69990,c:652},{d:70000,h:99990,c:1080},{d:100000,h:149990,c:1160},{d:150000,h:199990,c:1568},{d:200000,h:299990,c:2024},{d:300000,h:399990,c:2776},{d:400000,h:499990,c:3328},{d:500000,h:599990,c:4240},{d:600000,h:699990,c:4720},{d:700000,h:799990,c:5120},{d:800000,h:899990,c:5680},{d:900000,h:1000000,c:6120}],
+    estable3:[{d:0,h:990,c:248},{d:1000,h:1990,c:320},{d:2000,h:4990,c:392},{d:5000,h:9990,c:416},{d:10000,h:19990,c:456},{d:20000,h:29990,c:560},{d:30000,h:39990,c:640},{d:40000,h:49990,c:720},{d:50000,h:69990,c:880},{d:70000,h:99990,c:1200},{d:100000,h:149990,c:1520},{d:150000,h:199990,c:2000},{d:200000,h:299990,c:2720},{d:300000,h:399990,c:3440},{d:400000,h:499990,c:4080},{d:500000,h:599990,c:4640},{d:600000,h:699990,c:5200},{d:700000,h:799990,c:5760},{d:800000,h:899990,c:6560},{d:900000,h:1000000,c:7360}],
+    estable4:[{d:0,h:990,c:328},{d:1000,h:1990,c:428.8},{d:2000,h:4990,c:498.4},{d:5000,h:9990,c:556.8},{d:10000,h:19990,c:631.2},{d:20000,h:29990,c:808},{d:30000,h:39990,c:876},{d:40000,h:49990,c:988},{d:50000,h:69990,c:1152},{d:70000,h:99990,c:1780},{d:100000,h:149990,c:1984},{d:150000,h:199990,c:2656},{d:200000,h:299990,c:3376},{d:300000,h:399990,c:4480},{d:400000,h:499990,c:5376},{d:500000,h:599990,c:6952},{d:600000,h:699990,c:8160},{d:700000,h:799990,c:8400},{d:800000,h:899990,c:8560},{d:900000,h:1000000,c:8792}]
+  }
+};
+// Identifica columna de comisión NEXUS por nombre de tarifa (Estable1-4 → sin comisión)
+function matchNexusTramo(tar,tipo){
+  const name=tar.tar.toUpperCase();
+  const table=NEXUS_COM[tipo];
+  if(!table) return null;
+  let col=null;
+  if(name.includes('PRO+')) col='ep1';
+  else if(name.includes('MAX+')) col='ep2';
+  else if(name.includes('ULTRA+')) col='ep3';
+  else if(name.includes('PRO')) col='e1';
+  else if(name.includes('MAX')) col='e2';
+  else if(name.includes('ULTRA')) col='e3';
+  else if(name.includes('A TU MANERA')) col='e4';
+  else if(name.includes('EASY')) col='e5';
+  else if(name.includes('ESTABLE1')) col='estable1';
+  else if(name.includes('ESTABLE2')) col='estable2';
+  else if(name.includes('ESTABLE3')) col='estable3';
+  else if(name.includes('ESTABLE4')) col='estable4';
+  if(!col||!table[col]) return null;
+  return table[col];
+}
+
 // COMISIONES
 function calcComision(tar,c,feeEn,feePot){
   const CIA_ALIAS={'greening energy':'greening','plenitude green':'plenitude'};
@@ -1131,6 +1178,13 @@ function calcComision(tar,c,feeEn,feePot){
     if(!tramosG) return null;
     const tramoG=tramosG.find(t=>totalCon>=t.d&&totalCon<=t.h);
     return tramoG?tramoG.c:null;
+  }
+  if(ciaKey==='nexus'){
+    const tramosNexus=matchNexusTramo(tar,c.tipo);
+    if(!tramosNexus) return null;
+    const totalConN=c.con.reduce((a,b)=>a+b,0);
+    const tramoN=tramosNexus.find(t=>totalConN>=t.d&&totalConN<=t.h);
+    return tramoN?tramoN.c:null;
   }
   if(ciaKey==='holaluz'){
     const tramo=matchHolaluzTramo(tar,c.tipo);
@@ -1647,14 +1701,7 @@ function genOfertaPDF(){
     doc.text('Tel: '+com.tel,12,ph-6);
     doc.text('virtual-energy.es',210-doc.getTextWidth('virtual-energy.es')-10,ph-9);
   }
-  const pdfFilename=`Propuesta_Virtual_Energy_${c.nombre.replace(/\s+/g,'_')}_${now.replace(/\s+/g,'-')}.pdf`;
-  doc.save(pdfFilename);
-  // Subida automática a Notion (no bloquea la descarga local si falla)
-  try{
-    const pdfBlob=doc.output('blob');
-    const rNueva=calcTarifa(tar,c);
-    subirPropuestaANotion(c,tar,pdfBlob,pdfFilename,{costeActual:hasCur?cur.total:null,costeNuevo:rNueva.total,ahorro:hasCur?cur.total-rNueva.total:null});
-  }catch(e){ /* la descarga local ya se hizo; el fallo de subida se reporta dentro de subirPropuestaANotion */ }
+  doc.save(`Propuesta_Virtual_Energy_${c.nombre.replace(/\s+/g,'_')}_${now.replace(/\s+/g,'-')}.pdf`);
 }
 
 // DASHBOARD
@@ -1816,7 +1863,7 @@ async function buscarPaginaCliente(nombre, cups, clienteLocal=null){
 
 // Crea una página de cliente dentro de Clientes
 // ID de la base de datos de clientes (distinto del page_id de la página Clientes)
-const NOTION_DB_ID='ad8d3b07f57d4a3fbae66f0a04e78143';
+const NOTION_DB_ID='564616687b074e1eaa7c3e06a87b9d94';
 
 async function crearPaginaCliente(c){
   const cfg=getNotionCfg();
@@ -1988,109 +2035,6 @@ async function guardarClienteEnNotion(){
     statusEl.style.background='#f8d7da';
     statusEl.style.color='#842029';
     statusEl.textContent='❌ Error: '+e.message;
-  }
-}
-
-// ─── PROPUESTAS: subida automática de PDF + ficha vinculada al cliente ───────
-// ID de la base de datos "Propuestas" (creada dentro de ⚡ Virtual Energy, con
-// relación de doble sentido a la base de datos "Clientes")
-const NOTION_PROPUESTAS_DB_ID='0faca18bba1d4534b47ce8c1984eeab4';
-
-// Sube un PDF (Blob) a Notion en 2 pasos: 1) crear el "hueco" de subida,
-// 2) enviar el binario. Devuelve el file_upload id para adjuntarlo a una página.
-async function notionUploadFile(pdfBlob,filename){
-  const cfg=getNotionCfg();
-  if(!cfg.token) throw new Error('Token de Notion no configurado.');
-  const createResp=await notionFetch('/file_uploads',{
-    method:'POST',
-    body:JSON.stringify({filename,content_type:'application/pdf'})
-  });
-  if(!createResp?.id||!createResp?.upload_url) throw new Error('No se pudo iniciar la subida del PDF a Notion.');
-  const headers={'Authorization':'Bearer '+cfg.token,'Notion-Version':'2022-06-28'};
-  const form=new FormData();
-  form.append('file',pdfBlob,filename);
-  let uploadOk=false;
-  // Intento directo primero (algunos entornos sí permiten CORS en este endpoint)
-  try{
-    const r=await fetch(createResp.upload_url,{method:'POST',headers,body:form});
-    if(r.ok) uploadOk=true;
-  }catch(e){/* seguimos con proxy */}
-  if(!uploadOk){
-    const proxies=[
-      u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
-      u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-    ];
-    for(const mk of proxies){
-      try{
-        const r=await fetch(mk(createResp.upload_url),{method:'POST',headers,body:form});
-        if(r.ok){uploadOk=true;break;}
-      }catch(e){continue;}
-    }
-  }
-  if(!uploadOk) throw new Error('El PDF no se pudo subir a Notion (bloqueado por CORS). Descárgalo y arrástralo manualmente a la ficha del cliente.');
-  return createResp.id;
-}
-
-// Crea la fila en la base de datos "Propuestas", vinculada al cliente y con el PDF adjunto
-async function crearPaginaPropuesta(c,notionClientPageId,meta,fileUploadId,filename){
-  const titulo=`${meta.cia||'Propuesta'} — ${c.nombre} — ${meta.fechaStr}`;
-  const props={
-    'Propuesta':{title:[{text:{content:titulo}}]},
-    'Cliente':{relation:[{id:notionClientPageId}]},
-    'Tarifa':{rich_text:[{text:{content:meta.tarifa||''}}]},
-    'Fecha':{date:{start:meta.fechaISO}},
-    'Estado':{select:{name:'Enviada'}},
-    'PDF':{files:[{type:'file_upload',file_upload:{id:fileUploadId},name:filename}]}
-  };
-  if(meta.cia) props['Comercializadora']={select:{name:meta.cia}};
-  if(meta.costeActual!=null) props['Coste actual (€/año)']={number:meta.costeActual};
-  if(meta.costeNuevo!=null) props['Coste nuevo (€/año)']={number:meta.costeNuevo};
-  if(meta.ahorro!=null) props['Ahorro (€/año)']={number:meta.ahorro};
-  if(COMERCIAL_SEL) props['Comercial']={select:{name:COMERCIAL_SEL}};
-  const body={parent:{database_id:NOTION_PROPUESTAS_DB_ID},properties:props};
-  return await notionFetch('/pages',{method:'POST',body:JSON.stringify(body)});
-}
-
-// Orquestador: asegura que existe la ficha del cliente en Notion, sube el PDF
-// y crea la fila de Propuestas vinculada. Se llama automáticamente al exportar el PDF.
-async function subirPropuestaANotion(c,tar,pdfBlob,filename,meta){
-  const statusEl=document.getElementById('of-notion-status');
-  const cfg=getNotionCfg();
-  if(!cfg.token||!cfg.pageId){
-    if(statusEl){statusEl.style.display='block';statusEl.style.background='#fff3cd';statusEl.style.color='#7a5b00';statusEl.textContent='⚠️ Configura Notion (Inicio) para guardar propuestas automáticamente. El PDF se ha descargado igualmente.';}
-    return;
-  }
-  if(!statusEl) return;
-  statusEl.style.display='block';
-  statusEl.style.background='#e8f0f8';statusEl.style.color='#1a3a5c';
-  statusEl.textContent='🔄 Guardando propuesta en Notion...';
-  try{
-    const cLocal=CLT.find(x=>x.id===c.id);
-    let pageId=await buscarPaginaCliente(c.nombre,c.cups,cLocal);
-    if(!pageId){
-      statusEl.textContent='📄 Creando ficha de '+c.nombre+' en Notion...';
-      pageId=await crearPaginaCliente(c);
-      if(!pageId) throw new Error('No se pudo crear la ficha del cliente.');
-    }
-    const idx=CLT.findIndex(x=>x.id===c.id);
-    if(idx>=0){CLT[idx].notionPageId=pageId;localStorage.setItem('cel_clientes',JSON.stringify(CLT));}
-    statusEl.textContent='📤 Subiendo PDF...';
-    const fileUploadId=await notionUploadFile(pdfBlob,filename);
-    statusEl.textContent='🔗 Vinculando propuesta a la ficha...';
-    const now=new Date();
-    await crearPaginaPropuesta(c,pageId,{
-      cia:tar?.cia||'',
-      tarifa:tar?.tar||'',
-      fechaISO:now.toISOString().slice(0,10),
-      fechaStr:now.toLocaleDateString('es-ES'),
-      ...meta
-    },fileUploadId,filename);
-    statusEl.style.background='#d1e7dd';statusEl.style.color='#0a5f38';
-    statusEl.textContent='✅ Propuesta guardada en Notion y vinculada a la ficha de '+c.nombre;
-    setTimeout(()=>{statusEl.style.display='none';},5000);
-  }catch(e){
-    statusEl.style.background='#f8d7da';statusEl.style.color='#842029';
-    statusEl.textContent='❌ '+e.message+' (el PDF ya se descargó en tu equipo)';
   }
 }
 
