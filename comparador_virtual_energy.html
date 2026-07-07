@@ -1154,6 +1154,87 @@ function matchNexusTramo(tar,tipo){
   return table[col];
 }
 
+// ALETTEO — comisiones por tramo de consumo (GENIUS/GENIUS ULTRA/GENIUS ÚNICO/SMART),
+// por tramo de potencia contratada (POWER/POWER PLUS), y fórmula fija (ELECTION/ELECTION ULTRA).
+const ALETTEO_COM={
+  "2.0TD":{
+    "genius1":[{d:0,h:4990,c:95.625},{d:5000,h:9990,c:164.475},{d:10000,h:14990,c:252.45},{d:15000,h:19990,c:306},{d:20000,h:29990,c:420.75},{d:30000,h:39990,c:535.5},{d:40000,h:49990,c:627.3},{d:50000,h:74990,c:765},{d:75000,h:99990,c:1025.1},{d:100000,h:999999999,c:1377}],
+    "genius2":[{d:0,h:4990,c:80.325},{d:5000,h:9990,c:137.7},{d:10000,h:14990,c:221.85},{d:15000,h:19990,c:256.275},{d:20000,h:29990,c:344.25},{d:30000,h:39990,c:451.35},{d:40000,h:49990,c:535.5},{d:50000,h:74990,c:631.125},{d:75000,h:99990,c:841.5},{d:100000,h:999999999,c:1055.7}],
+    "genius3":[{d:0,h:4990,c:61.2},{d:5000,h:9990,c:95.625},{d:10000,h:14990,c:153},{d:15000,h:19990,c:172.125},{d:20000,h:29990,c:229.5},{d:30000,h:39990,c:306},{d:40000,h:49990,c:363.375},{d:50000,h:74990,c:420.75},{d:75000,h:99990,c:535.5},{d:100000,h:999999999,c:765}],
+    "genius4":[{d:0,h:4990,c:34.425},{d:5000,h:9990,c:57.375},{d:10000,h:14990,c:87.975},{d:15000,h:19990,c:103.275},{d:20000,h:29990,c:133.875},{d:30000,h:39990,c:164.475},{d:40000,h:49990,c:191.25},{d:50000,h:74990,c:229.5},{d:75000,h:99990,c:306},{d:100000,h:999999999,c:382.5}],
+    "geniusultra":[{d:0,h:4990,c:107.1},{d:5000,h:9990,c:210.375},{d:10000,h:14990,c:321.3},{d:15000,h:19990,c:428.4},{d:20000,h:29990,c:535.5},{d:30000,h:39990,c:745.875},{d:40000,h:49990,c:898.875},{d:50000,h:74990,c:1071},{d:75000,h:99990,c:1491.75},{d:100000,h:999999999,c:2180.25}],
+    "smart1":[{d:0,h:4990,c:19.125},{d:5000,h:9990,c:68.85},{d:10000,h:14990,c:118.575},{d:15000,h:19990,c:175.95},{d:20000,h:29990,c:240.975},{d:30000,h:39990,c:359.55},{d:40000,h:49990,c:451.35},{d:50000,h:74990,c:554.625},{d:75000,h:99990,c:826.2},{d:100000,h:999999999,c:1300.5}],
+    "smart2":[{d:0,h:4990,c:14.535},{d:5000,h:9990,c:57.375},{d:10000,h:14990,c:103.275},{d:15000,h:19990,c:145.35},{d:20000,h:29990,c:206.55},{d:30000,h:39990,c:286.875},{d:40000,h:49990,c:359.55},{d:50000,h:74990,c:459},{d:75000,h:99990,c:688.5},{d:100000,h:999999999,c:918}],
+    "smart3":[{d:0,h:4990,c:9.18},{d:5000,h:9990,c:34.425},{d:10000,h:14990,c:62.73},{d:15000,h:19990,c:91.8},{d:20000,h:29990,c:122.4},{d:30000,h:39990,c:179.775},{d:40000,h:49990,c:225.675},{d:50000,h:74990,c:302.175},{d:75000,h:99990,c:420.75},{d:100000,h:999999999,c:612}],
+    "smart4":[{d:0,h:4990,c:5.355},{d:5000,h:9990,c:19.125},{d:10000,h:14990,c:34.425},{d:15000,h:19990,c:49.725},{d:20000,h:29990,c:68.85},{d:30000,h:39990,c:95.625},{d:40000,h:49990,c:122.4},{d:50000,h:74990,c:153},{d:75000,h:99990,c:229.5},{d:100000,h:999999999,c:336.6}],
+    "power":[{d:0,h:3.99,c:57.375},{d:4,h:5.99,c:76.5},{d:6,h:9.99,c:87.975},{d:10,h:999999,c:103.275}],
+    "powerplus":[{d:0,h:3.99,c:68.85},{d:4,h:5.99,c:91.8},{d:6,h:9.99,c:114.75},{d:10,h:999999,c:137.7}]
+  },
+  "3.0TD":{
+    "genius1":[{d:0,h:4990,c:267.75},{d:5000,h:9990,c:306},{d:10000,h:19990,c:401.625},{d:20000,h:34990,c:535.5},{d:35000,h:49990,c:726.75},{d:50000,h:74990,c:918},{d:75000,h:99990,c:1224},{d:100000,h:149990,c:1644.75},{d:150000,h:199990,c:2295},{d:200000,h:299990,c:2677.5},{d:300000,h:399990,c:3595.5},{d:400000,h:499990,c:3978},{d:500000,h:749990,c:5278.5},{d:750000,h:999990,c:6885},{d:1000000,h:999999999,c:7650}],
+    "genius2":[{d:0,h:4990,c:191.25},{d:5000,h:9990,c:244.8},{d:10000,h:19990,c:306},{d:20000,h:34990,c:413.1},{d:35000,h:49990,c:535.5},{d:50000,h:74990,c:707.625},{d:75000,h:99990,c:918},{d:100000,h:149990,c:1224},{d:150000,h:199990,c:1702.125},{d:200000,h:299990,c:2142},{d:300000,h:399990,c:2830.5},{d:400000,h:499990,c:3213},{d:500000,h:749990,c:4016.25},{d:750000,h:999990,c:5355},{d:1000000,h:999999999,c:6885}],
+    "genius3":[{d:0,h:4990,c:114.75},{d:5000,h:9990,c:153},{d:10000,h:19990,c:214.2},{d:20000,h:34990,c:286.875},{d:35000,h:49990,c:382.5},{d:50000,h:74990,c:497.25},{d:75000,h:99990,c:688.5},{d:100000,h:149990,c:918},{d:150000,h:199990,c:1224},{d:200000,h:299990,c:1530},{d:300000,h:399990,c:1989},{d:400000,h:499990,c:2295},{d:500000,h:749990,c:3060},{d:750000,h:999990,c:4590},{d:1000000,h:999999999,c:5737.5}],
+    "genius4":[{d:0,h:4990,c:76.5},{d:5000,h:9990,c:107.1},{d:10000,h:19990,c:137.7},{d:20000,h:34990,c:191.25},{d:35000,h:49990,c:260.1},{d:50000,h:74990,c:313.65},{d:75000,h:99990,c:382.5},{d:100000,h:149990,c:535.5},{d:150000,h:199990,c:765},{d:200000,h:299990,c:956.25},{d:300000,h:399990,c:1224},{d:400000,h:499990,c:1530},{d:500000,h:749990,c:1912.5},{d:750000,h:999990,c:2295},{d:1000000,h:999999999,c:3442.5}],
+    "geniusultra":[{d:0,h:4990,c:275.4},{d:5000,h:9990,c:401.625},{d:10000,h:19990,c:535.5},{d:20000,h:34990,c:765},{d:35000,h:49990,c:994.5},{d:50000,h:74990,c:1338.75},{d:75000,h:99990,c:1663.875},{d:100000,h:149990,c:2295},{d:150000,h:199990,c:3251.25},{d:200000,h:299990,c:3825},{d:300000,h:399990,c:4972.5},{d:400000,h:499990,c:5737.5},{d:500000,h:749990,c:7650},{d:750000,h:999990,c:9562.5},{d:1000000,h:999999999,c:11475}],
+    "geniusunico1":[{d:0,h:4990,c:459},{d:5000,h:9990,c:573.75},{d:10000,h:19990,c:650.25},{d:20000,h:34990,c:841.5},{d:35000,h:49990,c:994.5},{d:50000,h:74990,c:1147.5},{d:75000,h:99990,c:1453.5},{d:100000,h:149990,c:1797.75},{d:150000,h:199990,c:2065.5},{d:200000,h:999999999,c:3060}],
+    "geniusunico2":[{d:0,h:4990,c:306},{d:5000,h:9990,c:367.2},{d:10000,h:19990,c:443.7},{d:20000,h:34990,c:516.375},{d:35000,h:49990,c:596.7},{d:50000,h:74990,c:650.25},{d:75000,h:99990,c:765},{d:100000,h:149990,c:956.25},{d:150000,h:199990,c:1147.5},{d:200000,h:999999999,c:1530}],
+    "smart1":[{d:0,h:4990,c:15.3},{d:5000,h:9990,c:53.55},{d:10000,h:19990,c:99.45},{d:20000,h:34990,c:191.25},{d:35000,h:49990,c:290.7},{d:50000,h:74990,c:420.75},{d:75000,h:99990,c:600.525},{d:100000,h:149990,c:841.5},{d:150000,h:199990,c:1147.5},{d:200000,h:299990,c:1530},{d:300000,h:399990,c:2295},{d:400000,h:499990,c:3060},{d:500000,h:749990,c:3710.25},{d:750000,h:999990,c:5355},{d:1000000,h:999999999,c:7650}],
+    "smart2":[{d:0,h:4990,c:11.475},{d:5000,h:9990,c:42.075},{d:10000,h:19990,c:80.325},{d:20000,h:34990,c:153},{d:35000,h:49990,c:229.5},{d:50000,h:74990,c:344.25},{d:75000,h:99990,c:459},{d:100000,h:149990,c:650.25},{d:150000,h:199990,c:918},{d:200000,h:299990,c:1185.75},{d:300000,h:399990,c:1759.5},{d:400000,h:499990,c:2142},{d:500000,h:749990,c:3060},{d:750000,h:999990,c:4590},{d:1000000,h:999999999,c:5737.5}],
+    "smart3":[{d:0,h:4990,c:9.18},{d:5000,h:9990,c:35.955},{d:10000,h:19990,c:68.85},{d:20000,h:34990,c:126.225},{d:35000,h:49990,c:195.075},{d:50000,h:74990,c:286.875},{d:75000,h:99990,c:382.5},{d:100000,h:149990,c:554.625},{d:150000,h:199990,c:765},{d:200000,h:299990,c:1032.75},{d:300000,h:399990,c:1453.5},{d:400000,h:499990,c:1836},{d:500000,h:749990,c:2486.25},{d:750000,h:999990,c:3748.5},{d:1000000,h:999999999,c:4590}],
+    "smart4":[{d:0,h:4990,c:4.59},{d:5000,h:9990,c:17.595},{d:10000,h:19990,c:32.895},{d:20000,h:34990,c:61.2},{d:35000,h:49990,c:95.625},{d:50000,h:74990,c:137.7},{d:75000,h:99990,c:191.25},{d:100000,h:149990,c:263.925},{d:150000,h:199990,c:382.5},{d:200000,h:299990,c:489.6},{d:300000,h:399990,c:726.75},{d:400000,h:499990,c:918},{d:500000,h:749990,c:1224},{d:750000,h:999990,c:1759.5},{d:1000000,h:999999999,c:2295}]
+  }
+};
+// Coeficientes de la fórmula fija para ELECTION / ELECTION ULTRA (Precio Base)
+const ALETTEO_ELECTION={
+  "election":{feeEn:30,coef:0.5355,feePot:12,coefPot:0.5355},
+  "electionultra":{feeEn:30,coef:0.6545,feePot:12,coefPot:0.6545}
+};
+function matchAletteoTramo(tar,c){
+  const name=tar.tar.toUpperCase();
+  const tipo=c.tipo;
+  // ELECTION / ELECTION ULTRA — fórmula fija con coeficiente de reparto
+  if(name.includes('ELECTION')){
+    const key=name.includes('ULTRA')?'electionultra':(name.includes('ELECTION')?'election':null);
+    // Solo aplica a ELECTION / ELECTION ULTRA "a secas" (no GREEN, que no tiene fórmula publicada)
+    if(name==='ELECTION'||name==='ELECTION ULTRA'){
+      const f=ALETTEO_ELECTION[key];
+      if(!f) return null;
+      const totalCon=c.con.reduce((a,b)=>a+b,0);
+      const totalPot=c.pot.reduce((a,b)=>a+(b||0),0);
+      const comEnergia=(totalCon/1000)*f.feeEn*f.coef;
+      const comPotencia=totalPot*f.feePot*f.coefPot;
+      return {tipo:'formula', valor:comEnergia+comPotencia};
+    }
+    return null;
+  }
+  const table=ALETTEO_COM[tipo];
+  if(!table) return null;
+  let col=null;
+  if(name.includes('POWER PLUS')) col='powerplus';
+  else if(name.includes('POWER')) col='power';
+  else if(name.includes('GENIUS ÚNICO 1')||name.includes('GENIUS UNICO 1')) col='geniusunico1';
+  else if(name.includes('GENIUS ÚNICO 2')||name.includes('GENIUS UNICO 2')) col='geniusunico2';
+  else if(name.includes('GENIUS ULTRA')) col='geniusultra';
+  else if(name.includes('GENIUS 1')) col='genius1';
+  else if(name.includes('GENIUS 2')) col='genius2';
+  else if(name.includes('GENIUS 3')) col='genius3';
+  else if(name.includes('GENIUS 4')) col='genius4';
+  else if(name.includes('SMART 1')) col='smart1';
+  else if(name.includes('SMART 2')) col='smart2';
+  else if(name.includes('SMART 3')) col='smart3';
+  else if(name.includes('SMART 4')) col='smart4';
+  if(!col||!table[col]) return null;
+  // POWER / POWER PLUS: tramo por potencia contratada P1, no por consumo
+  if(col==='power'||col==='powerplus'){
+    const p1=c.pot[0]||0;
+    const tramo=table[col].find(t=>p1>=t.d&&p1<=t.h);
+    return tramo?{tipo:'tramo',valor:tramo.c}:null;
+  }
+  const totalCon=c.con.reduce((a,b)=>a+b,0);
+  const tramo=table[col].find(t=>totalCon>=t.d&&totalCon<=t.h);
+  return tramo?{tipo:'tramo',valor:tramo.c}:null;
+}
+
 // COMISIONES
 function calcComision(tar,c,feeEn,feePot){
   const CIA_ALIAS={'greening energy':'greening','plenitude green':'plenitude'};
@@ -1178,6 +1259,10 @@ function calcComision(tar,c,feeEn,feePot){
     if(!tramosG) return null;
     const tramoG=tramosG.find(t=>totalCon>=t.d&&totalCon<=t.h);
     return tramoG?tramoG.c:null;
+  }
+  if(ciaKey==='aletteo'){
+    const r=matchAletteoTramo(tar,c);
+    return r?r.valor:null;
   }
   if(ciaKey==='nexus'){
     const tramosNexus=matchNexusTramo(tar,c.tipo);
